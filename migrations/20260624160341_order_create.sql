@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE TABLE IF NOT EXISTS orders_outbox (
                                              id BIGSERIAL PRIMARY KEY,
                                              aggregate_id BIGINT NOT NULL,
-                                             aggregate_type VARCHAR(100) NOT NULL,
     event_type VARCHAR(100) NOT NULL,
     payload JSONB NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

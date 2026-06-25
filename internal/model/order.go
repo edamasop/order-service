@@ -28,12 +28,11 @@ const (
 )
 
 type OutboxEvent struct {
-	ID            int64
-	AggregateID   int64
-	AggregateType string
-	EventType     string
-	Payload       []byte
-	CreatedAt     time.Time
-	ProcessedAt   *time.Time
-	Published     bool
+	ID          int64
+	AggregateID int64
+	EventType   string
+	Payload     []byte
+	CreatedAt   time.Time
+	ProcessedAt *time.Time
+	Published   bool
 }

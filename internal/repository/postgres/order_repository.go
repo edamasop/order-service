@@ -5,7 +5,6 @@ import (
 	"order-service/internal/model"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -19,10 +18,7 @@ func NewOrderRepository(db *pgxpool.Pool) *OrderRepository {
 	}
 }
 
-func (r *OrderRepository) querier(ctx context.Context) interface {
-	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
-	QueryRow(context.Context, string, ...any) pgx.Row
-} {
+func (r *OrderRepository) querier(ctx context.Context) Querier {
 	if tx, ok := ctx.Value(txKey{}).(pgx.Tx); ok {
 		return tx
 	}
