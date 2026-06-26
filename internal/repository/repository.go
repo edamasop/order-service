@@ -31,7 +31,7 @@ type Repositories struct {
 	Outbox    Outbox
 }
 
-func NewRepository(db *pgxpool.Pool) *Repositories {
+func NewRepositories(db *pgxpool.Pool) *Repositories {
 	return &Repositories{
 		TxManager: postgres.NewTxManager(db),
 		Order:     postgres.NewOrderRepository(db),
