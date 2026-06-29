@@ -14,13 +14,14 @@ type Order interface {
 	GetByID(ctx context.Context, id int64) (*schema.OrderResponse, error)
 	Update(ctx context.Context, id int64, dto *schema.OrderUpdate) error
 	Delete(ctx context.Context, id int64) error
+	List(ctx context.Context) ([]schema.OrderResponse, error)
 }
 
 type Services struct {
 	Order Order
 }
 
-func NewServices(repos repository.Repositories, entry *logrus.Entry) *Services {
+func NewServices(repos *repository.Repositories, entry *logrus.Entry) *Services {
 	return &Services{
 		Order: NewOrderService(repos.Order, repos.Outbox, repos.TxManager, entry),
 	}

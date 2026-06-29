@@ -12,9 +12,9 @@ import (
 )
 
 type OrderService interface {
-	Create(ctx context.Context, dto schema.OrderCreate) (*schema.OrderResponse, error)
+	Create(ctx context.Context, dto *schema.OrderCreate) error
 	GetByID(ctx context.Context, id int64) (*schema.OrderResponse, error)
-	Update(ctx context.Context, id int64, dto schema.OrderUpdate) (*schema.OrderResponse, error)
+	Update(ctx context.Context, id int64, dto *schema.OrderUpdate) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context) ([]schema.OrderResponse, error)
 }
@@ -37,13 +37,13 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	order, err := h.service.Create(r.Context(), dto)
+	err := h.service.Create(r.Context(), &dto)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, order)
+	writeJSON(w, http.StatusCreated, "OrderHandler successfully created")
 }
 
 func (h *OrderHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -86,13 +86,13 @@ func (h *OrderHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	order, err := h.service.Update(r.Context(), id, dto)
+	err = h.service.Update(r.Context(), id, &dto)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, order)
+	writeJSON(w, http.StatusOK, "OrderHandler successfully updated")
 }
 
 func (h *OrderHandler) Delete(w http.ResponseWriter, r *http.Request) {

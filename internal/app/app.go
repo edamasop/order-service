@@ -3,22 +3,32 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"order-service/internal/repository"
+	"order-service/internal/server"
+	"order-service/internal/service"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"order-service/internal/config"
+	delivery "order-service/internal/delivery/http"
 
 	"github.com/edamasop/messaging"
 	"github.com/jackc/pgx/v5/pgxpool"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func Run() {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	cfg := config.Load()
+
+	log := logrus.New()
+	log.SetOutput(os.Stdout)
 
 	// 1. Initialize PostgreSQL
 	dbPool, err := pgxpool.New(ctx, cfg.PostgresDSN)
@@ -74,5 +84,25 @@ func Run() {
 		}
 	}()
 
-	select {}
+	repos := repository.NewRepositories(dbPool)
+	services := service.NewServices(repos, logrus.NewEntry(log))
+	handlers := delivery.NewHandlers(services)
+	router := delivery.NewRouter(handlers)
+
+	svr, err := server.NewServer(cfg, router)
+	if err != nil {
+		log.Fatalf("Unable to init svr: %v", err)
+	}
+
+	go func() {
+		log.Info("Successfully started server on port: ", cfg.Port)
+		err = svr.Run()
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Unable to start svr: %v", err)
+		}
+	}()
+
+	<-ctx.Done()
+	log.Info("Shutting down signal received...")
+	defer svr.Shutdown(ctx)
 }

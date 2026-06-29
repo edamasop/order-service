@@ -129,6 +129,12 @@ func (s *OrderService) Delete(ctx context.Context, id int64) error {
 	})
 }
 
+func (s *OrderService) List(ctx context.Context) ([]schema.OrderResponse, error) {
+	//TODO implement me
+	s.log.WithField("func", "List").Trace("implement me")
+	return []schema.OrderResponse{}, nil
+}
+
 func (s *OrderService) createOutboxEvent(
 	ctx context.Context,
 	order *model.Order,

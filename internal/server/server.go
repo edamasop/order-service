@@ -12,16 +12,11 @@ type Server struct {
 	server *http.Server
 }
 
-func NewServer(cfg *config.Config, handler *handler.Handler) (*Server, error) {
-	httpHandler, err := handler.Init(cfg)
-	if err != nil {
-		return nil, err
-	}
-
+func NewServer(cfg *config.Config, handler http.Handler) (*Server, error) {
 	return &Server{
 		server: &http.Server{
 			Addr:           fmt.Sprintf(":%s", cfg.Port),
-			Handler:        httpHandler,
+			Handler:        handler,
 			ReadTimeout:    30 * time.Second,
 			WriteTimeout:   60 * time.Second,
 			MaxHeaderBytes: 2 << 20, // 2MB
