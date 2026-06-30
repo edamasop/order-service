@@ -84,10 +84,29 @@ func Run() {
 		}
 	}()
 
+	producerCfg := messaging.ProducerConfig{
+		BootstrapServers:       strings.Join(cfg.KafkaBrokers, ","),
+		Topic:                  cfg.KafkaTopic,
+		EnableLogging:          true,
+		LogOutput:              os.Stdout,
+		ErrOutput:              os.Stderr,
+		MaxAttempts:            3,
+		AllowAutoTopicCreation: true,
+	}
+
+	producer, err := messaging.NewKafkaProducer(producerCfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize Kafka producer: %v", err)
+	}
+	log.Info("Successfully connected to Kafka producer")
+
 	repos := repository.NewRepositories(dbPool)
 	services := service.NewServices(repos, logrus.NewEntry(log))
 	handlers := delivery.NewHandlers(services)
 	router := delivery.NewRouter(handlers)
+
+	outboxPoller := service.NewOutboxPoller(repos.Outbox, producer, logrus.NewEntry(log))
+	outboxPoller.Start(ctx)
 
 	svr, err := server.NewServer(cfg, router)
 	if err != nil {

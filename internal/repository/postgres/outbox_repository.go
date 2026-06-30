@@ -34,12 +34,11 @@ func (r *OutboxRepository) Create(ctx context.Context, event *model.OutboxEvent)
 		`
 		INSERT INTO orders_outbox (
 			aggregate_id,
-			aggregate_type,
 			event_type,
 			payload,
 			published
 		)
-		VALUES ($1, $2, $3, $4, $5)
+		VALUES ($1, $2, $3, $4)
 		RETURNING
 			id,
 			created_at,
@@ -67,7 +66,6 @@ func (r *OutboxRepository) GetByID(ctx context.Context, id int64) (*model.Outbox
 		SELECT
 			id,
 			aggregate_id,
-			aggregate_type,
 			event_type,
 			payload,
 			created_at,
@@ -103,11 +101,10 @@ func (r *OutboxRepository) Update(ctx context.Context, event *model.OutboxEvent)
 		UPDATE orders_outbox
 		SET
 			aggregate_id = $2,
-			aggregate_type = $3,
-			event_type = $4,
-			payload = $5,
-			processed_at = $6,
-			published = $7
+			event_type = $3,
+			payload = $4,
+			processed_at = $5,
+			published = $6
 		WHERE id = $1
 		`,
 		event.ID,
@@ -140,7 +137,6 @@ func (r *OutboxRepository) GetUnpublished(ctx context.Context, limit int) ([]*mo
 		SELECT
 			id,
 			aggregate_id,
-			aggregate_type,
 			event_type,
 			payload,
 			created_at,
