@@ -36,7 +36,7 @@ func (p *OutboxPoller) Start(ctx context.Context) {
 				events, err := p.repo.GetUnpublished(ctx, 20)
 				if err != nil {
 					p.log.Warnf("GetUnpublished err: %v", err)
-					return
+					continue
 				}
 
 				for _, event := range events {
