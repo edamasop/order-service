@@ -9,6 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const batchSize = 20
+
 type OutboxPoller struct {
 	producer messaging.Producer
 	repo     repository.Outbox
@@ -28,12 +30,13 @@ func NewOutboxPoller(repo repository.Outbox, producer messaging.Producer, log *l
 func (p *OutboxPoller) Start(ctx context.Context) {
 	p.log.WithField("func", "Start").Info("Starting OutboxPoller")
 	go func() {
+		defer p.ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-p.ticker.C:
-				events, err := p.repo.GetUnpublished(ctx, 20)
+				events, err := p.repo.GetUnpublished(ctx, batchSize)
 				if err != nil {
 					p.log.Warnf("GetUnpublished err: %v", err)
 					continue
