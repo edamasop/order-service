@@ -7,6 +7,8 @@ github.com/edamasop/messaging v0.0.0-20260620155953-ef21d912e002 h1:E/fThMw7Lx6G
 github.com/edamasop/messaging v0.0.0-20260620155953-ef21d912e002/go.mod h1:EDTtVKjKE7EDqirRYiBsDGgxM9j5jqlOrT2DUFDTCDM=
 github.com/edamasop/messaging v0.0.0-20260630152545-bdeff7f5f943 h1:plTUJ/nFxi0RuI6SPGSuWMtJ7AMdb0l0RQsWFyB7Auo=
 github.com/edamasop/messaging v0.0.0-20260630152545-bdeff7f5f943/go.mod h1:EDTtVKjKE7EDqirRYiBsDGgxM9j5jqlOrT2DUFDTCDM=
+github.com/edamasop/messaging v0.0.0-20260725181826-8ff0ed2e25db h1:/c4ar51qrL1+URFogaPm9fMVmHMLGkvipTQjQXrCzpo=
+github.com/edamasop/messaging v0.0.0-20260725181826-8ff0ed2e25db/go.mod h1:EDTtVKjKE7EDqirRYiBsDGgxM9j5jqlOrT2DUFDTCDM=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
 github.com/jackc/pgpassfile v1.0.0/go.mod h1:CEx0iS5ambNFdcRtxPj5JhEz+xB6uRky5eyVu/W2HEg=
 github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 h1:iCEnooe7UlwOQYpKFhBabPMi4aNAfoODPEFNiAnClxo=

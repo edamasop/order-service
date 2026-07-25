@@ -3,7 +3,7 @@ module order-service
 go 1.26
 
 require (
-	github.com/edamasop/messaging v0.0.0-20260630152545-bdeff7f5f943
+	github.com/edamasop/messaging v0.0.0-20260725181826-8ff0ed2e25db
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/joho/godotenv v1.5.1
 	github.com/sirupsen/logrus v1.9.4
