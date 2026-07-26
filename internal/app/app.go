@@ -46,7 +46,7 @@ func Run() {
 
 		BootstrapServers: strings.Join(cfg.KafkaBrokers, ","),
 		GroupID:          cfg.KafkaGroupID,
-		Topics:           []string{cfg.KafkaTopic},
+		Topics:           []string{cfg.KafkaConsumerTopic},
 		EnableLogging:    true,
 		LogOutput:        os.Stdout,
 		ManualCommit:     true,
@@ -55,7 +55,7 @@ func Run() {
 		ReadTimeout:      5 * time.Second,
 
 		EnableDLQ: true,
-		DLQTopic:  cfg.KafkaTopic + ".dlq",
+		DLQTopic:  cfg.KafkaConsumerTopic + ".dlq",
 
 		HealthCheckInterval:       15 * time.Second,
 		UnhealthyFailureThreshold: 5,
@@ -86,7 +86,7 @@ func Run() {
 
 	producerCfg := messaging.ProducerConfig{
 		BootstrapServers:       strings.Join(cfg.KafkaBrokers, ","),
-		Topic:                  cfg.KafkaTopic,
+		Topic:                  cfg.KafkaProducerTopic,
 		EnableLogging:          true,
 		LogOutput:              os.Stdout,
 		ErrOutput:              os.Stderr,

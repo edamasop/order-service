@@ -18,9 +18,10 @@ type Config struct {
 	//RedisAddr string
 	//RedisPass string
 
-	KafkaBrokers []string // Parsed from comma-separated string
-	KafkaTopic   string
-	KafkaGroupID string
+	KafkaBrokers       []string // Parsed from comma-separated string
+	KafkaProducerTopic string
+	KafkaConsumerTopic string
+	KafkaGroupID       string
 
 	// PostgreSQL Configuration
 	PostgresDSN string // Full connection string: postgres://user:pass@host:5432/dbname
@@ -73,9 +74,10 @@ func Load() *Config {
 		//RedisPass: getEnv("REDIS_PASS", ""),
 
 		// Kafka Configuration
-		KafkaBrokers: getEnvAsSlice("KAFKA_BROKERS", []string{"localhost:9092"}, ","),
-		KafkaTopic:   getEnv("KAFKA_TOPIC", "file_service_topic"),
-		KafkaGroupID: getEnv("KAFKA_GROUP_ID", "file_service_group"),
+		KafkaBrokers:       getEnvAsSlice("KAFKA_BROKERS", []string{"localhost:9092"}, ","),
+		KafkaProducerTopic: getEnv("KAFKA_PRODUCER_TOPIC", "file_service_topic"),
+		KafkaConsumerTopic: getEnv("KAFKA_CONSUMER_TOPIC", "file_service_topic"),
+		KafkaGroupID:       getEnv("KAFKA_GROUP_ID", "file_service_group"),
 
 		// PostgreSQL Configuration
 		// Format: host=localhost user=user password=pass dbname=file_db port=5432 sslmode=disable
