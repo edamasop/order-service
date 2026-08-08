@@ -44,7 +44,7 @@ func (p *OutboxPoller) Start(ctx context.Context) {
 				}
 
 				for _, event := range events {
-					err = p.producer.ProduceKey(ctx, strconv.FormatInt(event.ID, 10), event.EventType, event)
+					err = p.producer.ProduceKey(ctx, strconv.FormatInt(event.ID, 10), event.EventType, event.Payload)
 					if err != nil {
 						p.log.Errorf("Couldn't published event into producer: %v", err)
 						continue
