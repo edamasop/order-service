@@ -4,6 +4,7 @@ import (
 	"context"
 	"order-service/internal/model"
 	"order-service/internal/repository/postgres"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -20,8 +21,8 @@ type Outbox interface {
 	GetByID(ctx context.Context, id int64) (*model.OutboxEvent, error)
 	Update(ctx context.Context, event *model.OutboxEvent) error
 	Delete(ctx context.Context, id int64) error
-
 	GetUnpublished(ctx context.Context, limit int) ([]*model.OutboxEvent, error)
+	ClaimUnpublished(ctx context.Context, limit int, lease time.Duration) ([]*model.OutboxEvent, error)
 	MarkPublished(ctx context.Context, id int64) error
 }
 

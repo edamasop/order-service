@@ -34,5 +34,7 @@ type OutboxEvent struct {
 	Payload     []byte
 	CreatedAt   time.Time
 	ProcessedAt *time.Time
+	LockedUntil *time.Time
+	Attempts    int64
 	Published   bool
 }
