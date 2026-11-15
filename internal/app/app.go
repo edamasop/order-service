@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"order-service/internal/repository"
 	"order-service/internal/server"
@@ -94,13 +95,6 @@ func Run() {
 		consumer.Start(ctx)
 	}()
 
-	defer func() {
-		log.Info("Cleaning up resources and shutting down messaging nodes...")
-		if err := consumer.Close(); err != nil {
-			log.Errorf("Error while stopping consumer gracefully: %v", err)
-		}
-	}()
-
 	// 3. Publish order events through the transactional outbox.
 	producer, err := messaging.NewKafkaProducer(messaging.ProducerConfig{
 		BootstrapServers:       strings.Join(cfg.KafkaBrokers, ","),
@@ -137,15 +131,45 @@ func Run() {
 		log.Fatalf("Unable to init svr: %v", err)
 	}
 
+	serverErr := make(chan error, 1)
 	go func() {
 		log.Info("Successfully started server on port: ", cfg.Port)
-		err = svr.Run()
-		if err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Unable to start svr: %v", err)
-		}
+		serverErr <- svr.Run()
 	}()
 
-	<-ctx.Done()
-	log.Info("Shutting down signal received...")
-	defer svr.Shutdown(ctx)
+	select {
+	case <-ctx.Done():
+		log.Info("Shutting down signal received...")
+	case err := <-serverErr:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.WithError(err).Error("HTTP server stopped unexpectedly")
+		}
+	}
+
+	// Stop the background loops before the resources they use are closed.
+	// cancel() also covers the "server failed" path, where the signal context
+	// is still alive.
+	cancel()
+
+	// 1. Stop accepting new requests and let in-flight ones finish. A fresh
+	// context is required: the signal context is already cancelled, so passing
+	// it here would abort the drain immediately.
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer shutdownCancel()
+	if err := svr.Shutdown(shutdownCtx); err != nil {
+		log.WithError(err).Error("graceful HTTP shutdown failed")
+	}
+
+	// 2. Let the poller finish the batch it is currently publishing.
+	outboxPoller.Wait()
+
+	// 3. Flush the producer, then stop consuming.
+	if err := producer.Close(); err != nil {
+		log.WithError(err).Error("failed to close Kafka producer")
+	}
+	if err := consumer.Close(); err != nil {
+		log.WithError(err).Error("failed to close Kafka consumer")
+	}
+
+	log.Info("shutdown complete")
 }
