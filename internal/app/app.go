@@ -29,6 +29,8 @@ func Run() {
 
 	log := logrus.New()
 	log.SetOutput(os.Stdout)
+	entry := logrus.NewEntry(log)
+	startedAt := time.Now()
 
 	// 1. Initialize PostgreSQL
 	dbPool, err := pgxpool.New(ctx, cfg.PostgresDSN)
@@ -43,7 +45,7 @@ func Run() {
 	log.Info("Successfully connected to PostgreSQL")
 
 	repos := repository.NewRepositories(dbPool)
-	services := service.NewServices(repos, logrus.NewEntry(log))
+	services := service.NewServices(repos, entry)
 
 	// 2. Consume the events that move an order forward. The order service is
 	// the read side of the saga: it reacts to payments and shipments instead of
@@ -73,7 +75,7 @@ func Run() {
 		log.Fatalf("Failed to initialize Kafka consumer: %v", err)
 	}
 
-	orderEvents := service.NewOrderEventConsumer(services.Order, logrus.NewEntry(log))
+	orderEvents := service.NewOrderEventConsumer(services.Order, entry)
 
 	consumer.RegisterHandler(
 		string(events.PaymentStatusSuccessful),
@@ -114,13 +116,23 @@ func Run() {
 	}
 	log.Info("Successfully connected to Kafka producer")
 
-	handlers := delivery.NewHandlers(services)
-	router := delivery.NewRouter(handlers)
-
-	outboxPoller := service.NewOutboxPoller(repos.Outbox, producer, logrus.NewEntry(log))
+	outboxPoller := service.NewOutboxPoller(repos.Outbox, producer, entry)
 	outboxPoller.Start(ctx)
 
-	svr, err := server.NewServer(cfg, router)
+	handlerChain := delivery.NewRouter(delivery.NewHandlers(services), delivery.Options{
+		AllowedOrigins: cfg.AllowedOrigins,
+		Monitoring: delivery.MonitoringDeps{
+			Service:  "order-service",
+			DB:       dbPool,
+			Consumer: consumer,
+			Producer: producer,
+			Outbox:   outboxPoller,
+			Log:      entry,
+			Started:  startedAt,
+		},
+	})
+
+	svr, err := server.NewServer(cfg, handlerChain)
 	if err != nil {
 		log.Fatalf("Unable to init svr: %v", err)
 	}
