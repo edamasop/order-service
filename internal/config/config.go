@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -68,6 +69,38 @@ func consumerTopics() []string {
 		[]string{"payment-service", "shipment-service"},
 		",",
 	)
+}
+
+// Validate fails fast on a configuration that cannot possibly work. Starting
+// with a broken DSN or an empty topic list only postpones the failure to the
+// first request or Kafka poll, where it is much harder to diagnose.
+func (c *Config) Validate() error {
+	var problems []string
+
+	if strings.TrimSpace(c.PostgresDSN) == "" {
+		problems = append(problems, "POSTGRES_DSN is required")
+	}
+	if len(c.KafkaBrokers) == 0 {
+		problems = append(problems, "KAFKA_BROKERS is required")
+	}
+	if c.KafkaProducerTopic == "" {
+		problems = append(problems, "KAFKA_PRODUCER_TOPIC is required")
+	}
+	if len(c.KafkaConsumerTopics) == 0 {
+		problems = append(problems, "KAFKA_CONSUMER_TOPICS is required")
+	}
+	if c.KafkaGroupID == "" {
+		problems = append(problems, "KAFKA_GROUP_ID is required")
+	}
+	if c.Port == "" {
+		problems = append(problems, "PORT is required")
+	}
+
+	if len(problems) > 0 {
+		return fmt.Errorf("invalid configuration: %s", strings.Join(problems, "; "))
+	}
+
+	return nil
 }
 
 // Load initializes the configuration by loading .env and mapping environment variables

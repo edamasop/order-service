@@ -30,6 +30,11 @@ func Run() {
 
 	log := logrus.New()
 	log.SetOutput(os.Stdout)
+
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("Invalid configuration: %v", err)
+	}
+
 	entry := logrus.NewEntry(log)
 	startedAt := time.Now()
 
