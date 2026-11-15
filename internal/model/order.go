@@ -27,14 +27,19 @@ const (
 	OrderStatusCompleted OrderStatus = "COMPLETED"
 )
 
+// OutboxEvent mirrors a single orders_outbox row.
+//
+// The JSON tags are not used for the Kafka message itself (the poller publishes
+// Payload verbatim), but they keep logs and any ad-hoc JSON dump readable
+// instead of exposing Go field names.
 type OutboxEvent struct {
-	ID          int64
-	AggregateID int64
-	EventType   string
-	Payload     []byte
-	CreatedAt   time.Time
-	ProcessedAt *time.Time
-	LockedUntil *time.Time
-	Attempts    int64
-	Published   bool
+	ID          int64      `json:"id"`
+	AggregateID int64      `json:"aggregate_id"`
+	EventType   string     `json:"event_type"`
+	Payload     []byte     `json:"payload"`
+	CreatedAt   time.Time  `json:"created_at"`
+	ProcessedAt *time.Time `json:"processed_at,omitempty"`
+	LockedUntil *time.Time `json:"locked_until,omitempty"`
+	Attempts    int64      `json:"attempts"`
+	Published   bool       `json:"published"`
 }

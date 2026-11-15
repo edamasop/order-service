@@ -85,7 +85,20 @@ func (p *OutboxPoller) publishBatch(ctx context.Context) error {
 
 	for _, event := range events {
 		publishCtx, cancel := context.WithTimeout(context.Background(), p.publishTimeout)
-		err := p.producer.ProduceKey(publishCtx, strconv.FormatInt(event.ID, 10), event.EventType, event)
+		// Publish the stored JSON payload, not the outbox row: the row has no
+		// json tags, so consumers would receive the envelope's bookkeeping
+		// fields with the real event base64-encoded inside "Payload".
+		//
+		// The key is the aggregate (order) id so that everything that happened
+		// to one order lands on the same partition and keeps its order. Keying
+		// by the outbox row id would spread one order's events across
+		// partitions and silently break ordering.
+		err := p.producer.ProduceKey(
+			publishCtx,
+			strconv.FormatInt(event.AggregateID, 10),
+			event.EventType,
+			event.Payload,
+		)
 		cancel()
 		if err != nil {
 			p.log.WithError(err).WithFields(logrus.Fields{
