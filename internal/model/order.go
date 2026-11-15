@@ -42,4 +42,9 @@ type OutboxEvent struct {
 	LockedUntil *time.Time `json:"locked_until,omitempty"`
 	Attempts    int64      `json:"attempts"`
 	Published   bool       `json:"published"`
+	// Parked marks an event that exhausted its publish attempts and will no
+	// longer be claimed.
+	Parked bool `json:"parked"`
+	// LastError keeps the reason an event was parked, for manual inspection.
+	LastError *string `json:"last_error,omitempty"`
 }
