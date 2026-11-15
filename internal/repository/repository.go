@@ -12,6 +12,9 @@ import (
 type Order interface {
 	Create(ctx context.Context, order *model.Order) error
 	GetByID(ctx context.Context, id int64) (*model.Order, error)
+	// GetByIDForUpdate locks the row for the duration of the transaction so
+	// concurrent status transitions of the same order are serialized.
+	GetByIDForUpdate(ctx context.Context, id int64) (*model.Order, error)
 	Update(ctx context.Context, order *model.Order) error
 	Delete(ctx context.Context, id int64) error
 }

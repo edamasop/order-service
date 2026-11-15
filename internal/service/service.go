@@ -15,6 +15,10 @@ type Order interface {
 	Update(ctx context.Context, id int64, dto *schema.OrderUpdate) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context) ([]schema.OrderResponse, error)
+
+	// MarkPaid and MarkCompleted are driven by Kafka events, not by HTTP.
+	MarkPaid(ctx context.Context, orderID int64) error
+	MarkCompleted(ctx context.Context, orderID int64) error
 }
 
 type Services struct {

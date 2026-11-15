@@ -82,6 +82,45 @@ func (r *OrderRepository) GetByID(ctx context.Context, id int64) (*model.Order, 
 	return order, nil
 }
 
+// GetByIDForUpdate is used inside a transaction when a status transition must
+// be serialized with other updates of the same order.
+func (r *OrderRepository) GetByIDForUpdate(ctx context.Context, id int64) (*model.Order, error) {
+	q := r.querier(ctx)
+
+	order := new(model.Order)
+
+	err := q.QueryRow(ctx, `
+		SELECT
+			id,
+			order_number,
+			customer_id,
+			status,
+			total_amount,
+			currency,
+			created_at,
+			updated_at
+		FROM orders
+		WHERE id=$1
+		FOR UPDATE`,
+		id,
+	).Scan(
+		&order.ID,
+		&order.OrderNumber,
+		&order.CustomerID,
+		&order.Status,
+		&order.TotalAmount,
+		&order.Currency,
+		&order.CreatedAt,
+		&order.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return order, nil
+}
+
 func (r *OrderRepository) Update(ctx context.Context, order *model.Order) error {
 	q := r.querier(ctx)
 

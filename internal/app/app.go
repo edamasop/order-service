@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"order-service/internal/repository"
 	"order-service/internal/server"
@@ -16,6 +15,7 @@ import (
 	"order-service/internal/config"
 	delivery "order-service/internal/delivery/http"
 
+	"github.com/edamasop/events"
 	"github.com/edamasop/messaging"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sirupsen/logrus"
@@ -42,11 +42,16 @@ func Run() {
 	}
 	log.Info("Successfully connected to PostgreSQL")
 
-	consumerCfg := messaging.ConsumerConfig{
+	repos := repository.NewRepositories(dbPool)
+	services := service.NewServices(repos, logrus.NewEntry(log))
 
+	// 2. Consume the events that move an order forward. The order service is
+	// the read side of the saga: it reacts to payments and shipments instead of
+	// publishing to itself.
+	consumer, err := messaging.NewKafkaConsumer(messaging.ConsumerConfig{
 		BootstrapServers: strings.Join(cfg.KafkaBrokers, ","),
 		GroupID:          cfg.KafkaGroupID,
-		Topics:           []string{cfg.KafkaConsumerTopic},
+		Topics:           cfg.KafkaConsumerTopics,
 		EnableLogging:    true,
 		LogOutput:        os.Stdout,
 		ManualCommit:     true,
@@ -55,22 +60,32 @@ func Run() {
 		ReadTimeout:      5 * time.Second,
 
 		EnableDLQ: true,
-		DLQTopic:  cfg.KafkaConsumerTopic + ".dlq",
+		// One DLQ per service: with more than one consumed topic a per-topic
+		// DLQ would make it harder to see which stream produced a poison
+		// message.
+		DLQTopic: cfg.KafkaProducerTopic + ".dlq",
 
 		HealthCheckInterval:       15 * time.Second,
 		UnhealthyFailureThreshold: 5,
 		HealthFailureWindow:       1 * time.Minute,
-	}
-
-	consumer, err := messaging.NewKafkaConsumer(consumerCfg)
+	})
 	if err != nil {
 		log.Fatalf("Failed to initialize Kafka consumer: %v", err)
 	}
 
-	consumer.RegisterHandler("OrderCreated", func(data json.RawMessage) (bool, error) {
-		log.Infof("Processing OrderCreated event raw payload: %string", string(data))
-		return false, nil
-	})
+	orderEvents := service.NewOrderEventConsumer(services.Order, logrus.NewEntry(log))
+
+	consumer.RegisterHandler(
+		string(events.PaymentStatusSuccessful),
+		orderEvents.HandlePaymentSuccessful,
+	)
+	// There is no dedicated "delivered" event: delivery is reported as
+	// shipment.updated with Status == "DELIVERED", so the handler filters by
+	// status and ignores the "shipping" update.
+	consumer.RegisterHandler(
+		string(events.ShipmentUpdated),
+		orderEvents.HandleShipmentDelivered,
+	)
 
 	go func() {
 		log.Info("Starting message consumption engine...")
@@ -84,7 +99,8 @@ func Run() {
 		}
 	}()
 
-	producerCfg := messaging.ProducerConfig{
+	// 3. Publish order events through the transactional outbox.
+	producer, err := messaging.NewKafkaProducer(messaging.ProducerConfig{
 		BootstrapServers:       strings.Join(cfg.KafkaBrokers, ","),
 		Topic:                  cfg.KafkaProducerTopic,
 		EnableLogging:          true,
@@ -92,16 +108,12 @@ func Run() {
 		ErrOutput:              os.Stderr,
 		MaxAttempts:            3,
 		AllowAutoTopicCreation: true,
-	}
-
-	producer, err := messaging.NewKafkaProducer(producerCfg)
+	})
 	if err != nil {
 		log.Fatalf("Failed to initialize Kafka producer: %v", err)
 	}
 	log.Info("Successfully connected to Kafka producer")
 
-	repos := repository.NewRepositories(dbPool)
-	services := service.NewServices(repos, logrus.NewEntry(log))
 	handlers := delivery.NewHandlers(services)
 	router := delivery.NewRouter(handlers)
 
